@@ -19,7 +19,7 @@ io.on('connection', function (socket) {
     nodes: [],
     playerId: socket.id,
     color: Math.floor(Math.random() * 16777215).toString(16),
-    score: 0
+    score: 0,
   }
 
   for (var i = 0; i < INIT_NODES; i++) {
@@ -45,6 +45,11 @@ io.on('connection', function (socket) {
       players[socket.id].nodes[i] = movementData.nodes[i];
     }
     socket.broadcast.emit('playerMoved', players[socket.id]);
+  });
+
+  socket.on('playerDed', () => {
+    // delete players[socket.id];
+    io.emit('unconnect', socket.id);
   });
 });
 

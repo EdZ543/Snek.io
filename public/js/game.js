@@ -28,7 +28,7 @@ var ROTATION_SPEED = 1.5 * Math.PI;
 var ROTATION_SPEED_DEGREES = Phaser.Math.RadToDeg(ROTATION_SPEED);
 var TOLERANCE = 0.05 * ROTATION_SPEED;
 var PLAYER_SIZE = 20;
-var SPEED = 5;
+var SPEED = 2;
 
 function preload() {
   this.load.image('background', 'assets/background.jpg')
@@ -57,11 +57,12 @@ function create() {
   });
   
   this.socket.on('unconnect', (playerId) => {
-    self.otherPlayers.getChildren().forEach((otherPlayer) => {
-      if (playerId === otherPlayer.playerId) {
-        otherPlayer.destroy();
+    for (var i = 0; i < self.otherPlayers.getChildren().length; i++) {
+      if (playerId === self.otherPlayers.getChildren()[i].playerId) {
+        self.otherPlayers.getChildren()[i].destroy();
+        i--;
       }
-    });
+    }
   });
 
   this.socket.on('playerMoved', function (playerInfo) {
@@ -72,28 +73,37 @@ function create() {
     });
   });
 
+  this.input.on('pointerdown', function (pointer) {
+    if (SPEED == 2) {
+      SPEED = 0;
+    } else {
+      SPEED = 2;
+    }
+  }, this);
 }
 
 function update() {
   if (this.nodes.length > 0) {
+    console.log('bruh');
     for (var i = 0; i < this.nodes.length; i++) {
       if (i == 0) {
         this.input.activePointer.updateWorldPoint(this.cameras.main);
         var angleToPointer = Phaser.Math.Angle.Between(this.nodes[i].x, this.nodes[i].y, this.input.activePointer.worldX, this.input.activePointer.worldY);
         var angleDelta = Phaser.Math.Angle.Wrap(angleToPointer - this.nodes[i].rotation);
-        
+
         if (Phaser.Math.Within(angleDelta, 0, TOLERANCE)) {
           this.nodes[i].rotation = angleToPointer;
           this.nodes[i].body.setAngularVelocity(0);
         } else {
           this.nodes[i].body.setAngularVelocity(Math.sign(angleDelta) * ROTATION_SPEED_DEGREES);
         }
-
+        
         var xDir = Math.cos(this.nodes[i].rotation);
         var yDir = Math.sin(this.nodes[i].rotation);
+
         this.nodes[i].x += xDir * SPEED;
         this.nodes[i].y += yDir * SPEED;
-
+          
         for (var j = 0; j < SPEED; j++) {
           var part = this.path.pop();
           part.x = this.nodes[i].x + xDir;
@@ -105,15 +115,26 @@ function update() {
         this.nodes[i].y = this.path[i * SPACING].y;
       }
     }
-    
+      
     this.socket.emit('playerMovement', { nodes: this.nodes });
+      
+    this.physics.add.collider(this.nodes[0], this.otherPlayers, () => {
+      this.cameras.main.stopFollow();
+      for (var i = 0; i < this.nodes.length; i++) {
+        this.nodes[i].setVisible(false);
+      }
+      this.nodes[0].body.checkCollision.none = true;
+      this.socket.emit('playerDed');
+    });
   }
 }
 
 function addPlayer(self, playerInfo) {
   for (var i = 0; i < playerInfo.nodes.length; i++) {
     self.nodes[i] = self.add.circle(playerInfo.nodes[i].x, playerInfo.nodes[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
-    self.physics.add.existing(self.nodes[i]);
+    if (i == 0) {
+      self.physics.add.existing(self.nodes[i]);
+    }
   };
 
   self.cameras.main.startFollow(self.nodes[0]);
