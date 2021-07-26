@@ -67,7 +67,7 @@ function create() {
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach((otherPlayer) => {
       if (playerInfo.playerId === otherPlayer.playerId) {
-          otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
+        otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
       }
     });
   });
@@ -124,17 +124,11 @@ function addPlayer(self, playerInfo) {
 }
 
 function addOtherPlayers(self, playerInfo) {
-  var otherHead = self.add.circle(playerInfo.head.x, playerInfo.head.y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
-  self.physics.add.existing(otherHead);
-  otherHead.playerId = playerInfo.playerId;
-  otherHead.sectionId = -1;
-  self.otherPlayers.add(otherHead);
-  
   for (var i = 0; i < playerInfo.nodes.length; i++) {
-    var otherSection = self.add.circle(playerInfo.section[i].x, playerInfo.section[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
-    self.physics.add.existing(otherSection);
-    otherSection.playerId = playerInfo.playerId;
-    otherSection.sectionId = i;
-    self.otherPlayers.add(otherSection);
-  };
+    var otherPlayer = self.add.circle(playerInfo.nodes[i].x, playerInfo.nodes[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
+    self.physics.add.existing(otherPlayer);
+    otherPlayer.playerId = playerInfo.playerId;
+    otherPlayer.nodeId = i;
+    self.otherPlayers.add(otherPlayer);
+  }
 }
