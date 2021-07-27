@@ -75,31 +75,38 @@ function create() {
         otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
       }
     });
+    console.log(self.otherPlayers.getChildren().length);
   });
 
-  // this.socket.on('scoreUpdate', (playerInfo) => {
+  this.socket.on('scoreUpdate', (playerInfo) => {
+  });
 
-  // });
-
-  // this.socket.on('nomCollection', (nomPos) => {
-  //   for (var i = 0; i < self.noms.getChildren().length; i++) {
-  //     if (nomPos.x === self.noms.getChildren()[i].x && nomPos.y === self.noms.getChildren()[i].y) {
-  //       self.noms.getChildren()[i].destroy();
-  //       i--;
-  //     }
-  //   }
-  // });
-
+  this.socket.on('playerGrowed', (playerInfo) => {
+    growOtherPlayer(self, playerInfo);
+  });
+  
+  this.socket.on('nomCollection', (nomPos) => {
+    for (var i = 0; i < self.noms.getChildren().length; i++) {
+      if (nomPos.x === self.noms.getChildren()[i].x && nomPos.y === self.noms.getChildren()[i].y) {
+        self.noms.getChildren()[i].destroy();
+        i--;
+      }
+    }
+  });
+  
   this.socket.on('nomLocations', (noms) => {
     for (var i = 0; i < noms.length; i++) {
       var nom = self.add.circle(noms[i].x, noms[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
-      // self.physics.add.existing(nom);
+      self.physics.add.existing(nom);
       self.noms.add(nom);
     }
-    // this.physics.add.collider(this.nodes[0], this.noms, (node, nom) => {
-    //   var nomPos = { x: nom.x, y: nom.y };
-    //   this.socket.emit('nomCollected', nomPos);
-    // });
+    this.physics.add.collider(this.nodes[0], this.noms, (node, nom) => {
+      growPlayer(self);
+      var nomPos = { x: nom.x, y: nom.y };
+      this.socket.emit('nomCollected', nomPos);
+      this.socket.emit('playerGrow', { x: this.nodes[this.nodes.length - 1].x, y: this.nodes[this.nodes.length - 1].y });
+      nom.destroy();
+    });
   })
 
   this.input.on('pointerdown', function (pointer) {
@@ -189,4 +196,19 @@ function gameOver(self) {
   }
   self.nodes[0].body.checkCollision.none = true;
   self.socket.emit('playerDed')
+}
+
+function growPlayer(self) {
+  self.nodes.push(self.add.circle(self.nodes[self.nodes.length - 1].x, self.nodes[self.nodes.length - 1].y, PLAYER_SIZE, self.nodes[self.nodes.length - 1].fillColor));
+  for (var i = 0; i < SPACING; i++) {
+    self.path.push({ x: self.nodes[self.nodes.length - 1].x - i, y: self.nodes[self.nodes.length - 1].y });
+  }
+}
+
+function growOtherPlayer(self, playerInfo) {
+  var otherNode = self.add.circle(playerInfo.nodes[playerInfo.nodes.length - 1].x, playerInfo.nodes[playerInfo.nodes.length - 1].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
+  self.physics.add.existing(otherNode);
+  otherNode.playerId = playerInfo.playerId;
+  otherNode.nodeId = playerInfo.nodes.length - 1;
+  self.otherPlayers.add(otherNode);
 }

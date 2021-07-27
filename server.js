@@ -9,6 +9,7 @@ var noms = [];
 var INIT_NODES = 6;
 var NUM_NOMS = 100;
 var WORLD_SIZE = 5000;
+var BUFFER = 500;
 
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -16,8 +17,8 @@ function randInt(min, max) {
 
 for (var i = 0; i < NUM_NOMS; i++) {
   noms[i] = {
-    x: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50),
-    y: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50),
+    x: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER),
+    y: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER),
   }
 }
 
@@ -34,12 +35,11 @@ io.on('connection', function (socket) {
     nodes: [],
     playerId: socket.id,
     color: Math.floor(Math.random() * 16777215).toString(16),
-    score: 0,
   }
 
   for (var i = 0; i < INIT_NODES; i++) {
     if (i == 0) {
-      players[socket.id].nodes[i] = { x: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50), y: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50) };
+      players[socket.id].nodes[i] = { x: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER), y: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER) };
     } else {
       players[socket.id].nodes[i] = { x: players[socket.id].nodes[i - 1].x, y: players[socket.id].nodes[i - 1].y };
     }
@@ -67,17 +67,21 @@ io.on('connection', function (socket) {
     io.emit('unconnect', socket.id);
   });
 
-  // socket.on('nomCollected', (nomData) => {
-  //   players[socket.id].score++;
-  //   for (var i = 0; i < noms.length; i++) {
-  //     if (noms[i] == nomPos) {
-  //       delete noms[i];
-  //       i--;
-  //     }
-  //   }
-  //   io.emit('nomCollection', nomData.nomPos);
-  //   io.emit('scoreUpdate', players[socket.id]);
-  // })
+  socket.on('nomCollected', (nomPos, x, y) => {
+    for (var i = 0; i < noms.length; i++) {
+      if (noms[i] == nomPos) {
+        delete noms[i];
+        i--;
+      }
+    }
+    socket.broadcast.emit('nomCollection', nomPos);
+    io.emit('scoreUpdate', players[socket.id]);
+  })
+  
+  socket.on('playerGrow', (playerInfo) => {
+    players[socket.id].nodes.push({ x: playerInfo.x, y: playerInfo.y });
+    socket.broadcast.emit('playerGrowed', players[socket.id]);
+  });
 });
 
 server.listen(process.env.PORT || 8081, function () {
