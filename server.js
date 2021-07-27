@@ -4,8 +4,18 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var players = {};
+var noms = [];
 
 var INIT_NODES = 6;
+var NUM_NOMS = 10;
+
+for (var i = 0; i < NUM_NOMS; i++) {
+  // noms[i] = {
+  //   x: Math.floor(Math.random() * 700) + 50,
+  //   y: Math.floor(Math.random() * 500) + 50,
+  // }
+}
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function (req, res) {
@@ -31,6 +41,7 @@ io.on('connection', function (socket) {
   }
 
   socket.emit('currentPlayers', players);
+  socket.emit('nomLocations', noms);
   socket.broadcast.emit('newPlayer', players[socket.id]);
 
   socket.on('disconnect', () => {
@@ -48,9 +59,20 @@ io.on('connection', function (socket) {
   });
 
   socket.on('playerDed', () => {
-    // delete players[socket.id];
     io.emit('unconnect', socket.id);
   });
+
+  // socket.on('nomCollected', (nomData) => {
+  //   players[socket.id].score++;
+  //   for (var i = 0; i < noms.length; i++) {
+  //     if (noms[i] == nomPos) {
+  //       delete noms[i];
+  //       i--;
+  //     }
+  //   }
+  //   io.emit('nomCollection', nomData.nomPos);
+  //   io.emit('scoreUpdate', players[socket.id]);
+  // })
 });
 
 server.listen(process.env.PORT || 8081, function () {
