@@ -90,7 +90,7 @@ function create() {
   //   }
   // });
 
-  this.socket.on('nomLocatons', (noms) => {
+  this.socket.on('nomLocations', (noms) => {
     for (var i = 0; i < noms.length; i++) {
       var nom = self.add.circle(noms[i].x, noms[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
       // self.physics.add.existing(nom);

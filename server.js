@@ -7,13 +7,18 @@ var players = {};
 var noms = [];
 
 var INIT_NODES = 6;
-var NUM_NOMS = 10;
+var NUM_NOMS = 100;
+var WORLD_SIZE = 5000;
+
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
 
 for (var i = 0; i < NUM_NOMS; i++) {
-  // noms[i] = {
-  //   x: Math.floor(Math.random() * 700) + 50,
-  //   y: Math.floor(Math.random() * 500) + 50,
-  // }
+  noms[i] = {
+    x: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50),
+    y: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50),
+  }
 }
 
 app.use(express.static(__dirname + '/public'));
@@ -34,7 +39,7 @@ io.on('connection', function (socket) {
 
   for (var i = 0; i < INIT_NODES; i++) {
     if (i == 0) {
-      players[socket.id].nodes[i] = { x: Math.floor(Math.random() * 700) + 50, y: Math.floor(Math.random() * 500) + 50 };
+      players[socket.id].nodes[i] = { x: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50), y: randInt(-WORLD_SIZE / 2 + 50, WORLD_SIZE / 2 - 50) };
     } else {
       players[socket.id].nodes[i] = { x: players[socket.id].nodes[i - 1].x, y: players[socket.id].nodes[i - 1].y };
     }
