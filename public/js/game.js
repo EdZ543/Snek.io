@@ -60,6 +60,7 @@ function create() {
   this.textInput = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromCache('nameform').setScrollFactor(0);
   this.warningText = this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, '', { fontSize: '20px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5);
   this.titleText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 300, 'Snek.io', { fontSize: '100px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5);
+  this.gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, 'OOF Game Over', { fontSize: '100px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5).setVisible(false);
   this.otherNicknames = {};
   this.boostMeter = BOOST_TIME;
   this.boosting = false;
@@ -285,6 +286,7 @@ function gameOver(self) {
     self.nodes[i].setVisible(false);
   }
   self.nicknameText.setVisible(false);
+  self.gameOverText.setVisible(true);
   self.nodes[0].body.checkCollision.none = true;
   self.nodes[0].body.setCollideWorldBounds(false);
   self.nodes[0].body.onWorldBounds = false;
