@@ -20,12 +20,16 @@ function leaderboardSort(x, y) {
   return y.score - x.score;
 }
 
-for (var i = 0; i < NUM_NOMS; i++) {
-  noms[i] = {
-    x: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER),
-    y: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER),
+function initNoms() {
+  noms = [];
+  for (var i = 0; i < NUM_NOMS; i++) {
+    noms[i] = {
+      x: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER),
+      y: randInt(-WORLD_SIZE / 2 + BUFFER, WORLD_SIZE / 2 - BUFFER),
+    }
   }
 }
+initNoms();
 
 app.use(express.static(__dirname + '/public'));
 
@@ -38,6 +42,10 @@ io.on('connection', function (socket) {
 
   socket.on('login', (nickname) => {
     socket.emit('loggedIn');
+
+    if (Object.keys(noms).length == 0) {
+      initNoms();
+    }
 
     players[socket.id] = {
       nodes: [],
@@ -72,6 +80,7 @@ io.on('connection', function (socket) {
         players[socket.id].nodes[i] = movementData.nodes[i];
       }
       socket.broadcast.emit('playerMoved', players[socket.id]);
+      // console.log(noms.length);
     });
 
     socket.on('disconnect', () => {
@@ -122,6 +131,9 @@ io.on('connection', function (socket) {
         if (noms[i] == nomPos) {
           delete noms[i];
           i--;
+          console.log('poggers');
+        } else {
+          // console.log(noms[i], nomPos);
         }
       }
       socket.broadcast.emit('nomCollection', nomPos);
