@@ -164,7 +164,7 @@ function create() {
         nom.destroy();
       });
     });
-  
+    
     this.socket.on('nomsReleased', (nomsReleased) => {
       for (var i = 0; i < nomsReleased.length; i++) {
         var nom = self.add.circle(nomsReleased[i].x, nomsReleased[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
@@ -199,6 +199,7 @@ function update() {
     this.speed = NORMAL_SPEED;
   }
 
+  // if (this.noms.getChildren()[0])console.log(this.noms.getChildren()[0].x);
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
 

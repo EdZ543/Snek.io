@@ -46,6 +46,10 @@ io.on('connection', function (socket) {
     if (Object.keys(noms).length == 0) {
       initNoms();
     }
+    // console.log(noms);
+    // for (var i = 0; i < noms.length; i++) {
+    //   console.log(noms[i]);
+    // }
 
     players[socket.id] = {
       nodes: [],
@@ -80,7 +84,7 @@ io.on('connection', function (socket) {
         players[socket.id].nodes[i] = movementData.nodes[i];
       }
       socket.broadcast.emit('playerMoved', players[socket.id]);
-      // console.log(noms.length);
+      console.log(noms.length);
     });
 
     socket.on('disconnect', () => {
@@ -128,10 +132,11 @@ io.on('connection', function (socket) {
 
     socket.on('nomCollected', (nomPos) => {
       for (var i = 0; i < noms.length; i++) {
-        if (noms[i] == nomPos) {
-          delete noms[i];
+        // console.log(noms[i]);
+        if (noms[i] && noms[i].x == nomPos.x && noms[i].y == nomPos.y) {
+          // console.log('poggers');
+          noms.splice(i, 1);
           i--;
-          console.log('poggers');
         } else {
           // console.log(noms[i], nomPos);
         }
@@ -151,6 +156,7 @@ io.on('connection', function (socket) {
 
     socket.on('playerBoost', (nomsReleased) => {
       players[socket.id].nodes.pop();
+      noms.push(nomsReleased[0]);
       io.emit('nomsReleased', nomsReleased);
     });
   })
