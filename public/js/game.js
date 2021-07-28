@@ -2,8 +2,10 @@ var config = {
   type: Phaser.AUTO,
   scale: {
     parent: 'phaser-example',
-    mode: Phaser.Scale.RESIZE,
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight,
   },
   physics: {
     default: 'arcade',
@@ -29,9 +31,12 @@ var ROTATION_SPEED = 1.5 * Math.PI;
 var ROTATION_SPEED_DEGREES = Phaser.Math.RadToDeg(ROTATION_SPEED);
 var TOLERANCE = 0.05 * ROTATION_SPEED;
 var PLAYER_SIZE = 20;
-var SPEED = 5;
 var NOM_SIZE = 10;
-var WORLD_SIZE = 5000;
+var WORLD_SIZE = 3500;
+var MAX_NICKNAME_SIZE = 20;
+var NORMAL_SPEED = 5;
+var BOOST_SPEED = 10;
+var BOOST_TIME = 50;
 
 function preload() {
   this.load.image('background', 'assets/background.jpg');
@@ -48,101 +53,151 @@ function create() {
   this.noms = this.physics.add.group();
   this.nodes = [];
   this.path = [];
-  this.playerScoreText = this.add.text(16, 16, 'Length: ' + this.nodes.length, { fontSize: '32px', fill: '#FFFFFF' }).setScrollFactor(0).setVisible(false);
-  this.text_input = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromCache('nameform').setScrollFactor(0);
+  this.playerScoreText = this.add.text(16, 16, 'Your Length: ' + this.nodes.length, { fontSize: '20px', fill: '#FFFFFF' }).setScrollFactor(0).setVisible(false);
+  this.playerScoreText.depth = 1;
+  this.leaderboardText = this.add.text(this.scale.width, 0, '', { fontSize: '20px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(1, 0);
+  this.leaderboardText.depth = 1;
+  this.textInput = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromCache('nameform').setScrollFactor(0);
+  this.warningText = this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, '', { fontSize: '20px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5);
+  this.titleText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 300, 'Snek.io', { fontSize: '100px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5);
   this.otherNicknames = {};
+  this.boostMeter = BOOST_TIME;
+  this.boosting = false;
+  this.physics.world.setBounds(-WORLD_SIZE / 2, -WORLD_SIZE / 2, WORLD_SIZE, WORLD_SIZE);
   
-  this.text_input.addListener('click');
-  this.text_input.on('click', (event) => {
+  this.textInput.addListener('click');
+  this.textInput.on('click', (event) => {
     if (event.target.name === 'playButton') {
-      var inputText = this.text_input.getChildByName('nameField');
+      var inputText = this.textInput.getChildByName('nameField');
       
       if (inputText.value == '') {
-        
+        this.warningText.setText('Please enter a nickname');
       } else {
-        this.text_input.removeListener('click');
-        this.text_input.setVisible(false);
+        this.textInput.removeListener('click');
+        this.textInput.setVisible(false);
         this.playerScoreText.setVisible(true);
+        this.warningText.setVisible(false);
+        this.titleText.setVisible(false);
         this.socket.emit('login', inputText.value);
       }
     }
   });
   
-  this.socket.on('currentPlayers', (players) => {
-    Object.keys(players).forEach((id) => {
-      if (players[id].playerId === self.socket.id) {
-        addPlayer(self, players[id]);
-      } else {
-        addOtherPlayers(self, players[id]);
-      }
+  this.socket.on('loggedIn', () => {
+    this.socket.on('currentPlayers', (players) => {
+      Object.keys(players).forEach((id) => {
+        if (players[id].playerId === self.socket.id) {
+          addPlayer(self, players[id]);
+        } else {
+          if (players[id].alive) addOtherPlayers(self, players[id]);
+        }
+      });
     });
-  });
-
-  this.socket.on('newPlayer', (playerInfo) => {
-    addOtherPlayers(self, playerInfo);
-  });
-
-  this.socket.on('unconnect', (playerId) => {
-    for (var i = 0; i < self.otherPlayers.getChildren().length; i++) {
-      if (playerId === self.otherPlayers.getChildren()[i].playerId) {
-        self.otherPlayers.getChildren()[i].destroy();
-        i--;
-      }
-    }
-    self.otherNicknames[playerId].setVisible(false);
-  });
-
-  this.socket.on('playerMoved', function (playerInfo) {
-    self.otherPlayers.getChildren().forEach((otherPlayer) => {
-      if (playerInfo.playerId === otherPlayer.playerId) {
-        otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
-      }
-    });
-    if (self.otherNicknames[playerInfo.playerId]) self.otherNicknames[playerInfo.playerId].setPosition(playerInfo.nodes[0].x, playerInfo.nodes[0].y + PLAYER_SIZE * 3);
-  });
-
-  this.socket.on('scoreUpdate', (playerInfo) => {
-
-  });
-
-  this.socket.on('playerGrowed', (playerInfo) => {
-    growOtherPlayer(self, playerInfo);
-  });
   
-  this.socket.on('nomCollection', (nomPos) => {
-    for (var i = 0; i < self.noms.getChildren().length; i++) {
-      if (nomPos.x === self.noms.getChildren()[i].x && nomPos.y === self.noms.getChildren()[i].y) {
-        self.noms.getChildren()[i].destroy();
-        i--;
-      }
-    }
-  });
-  
-  this.socket.on('nomLocations', (noms) => {
-    for (var i = 0; i < noms.length; i++) {
-      var nom = self.add.circle(noms[i].x, noms[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
-      self.physics.add.existing(nom);
-      self.noms.add(nom);
-    }
-    this.physics.add.collider(this.nodes[0], this.noms, (node, nom) => {
-      growPlayer(self);
-      var nomPos = { x: nom.x, y: nom.y };
-      this.socket.emit('nomCollected', nomPos);
-      this.socket.emit('playerGrow', { x: this.nodes[this.nodes.length - 1].x, y: this.nodes[this.nodes.length - 1].y });
-      nom.destroy();
+    this.socket.on('newPlayer', (playerInfo) => {
+      addOtherPlayers(self, playerInfo);
     });
-  })
-
-  this.input.on('pointerdown', function (pointer) {
-    if (SPEED == 5) {
-      SPEED = 0;
-    } else {
-      SPEED = 5;
-    }
-  }, this);
+  
+    this.socket.on('unconnect', (playerId) => {
+      for (var i = 0; i < self.otherPlayers.getChildren().length; i++) {
+        if (playerId === self.otherPlayers.getChildren()[i].playerId) {
+          self.otherPlayers.getChildren()[i].destroy();
+          i--;
+        }
+      }
+      if (self.otherNicknames[playerId]) self.otherNicknames[playerId].setVisible(false);
+    });
+  
+    this.socket.on('playerMoved', function (playerInfo) {
+      self.otherPlayers.getChildren().forEach((otherPlayer) => {
+        if (playerInfo.playerId === otherPlayer.playerId) {
+          if (!playerInfo.nodes[otherPlayer.nodeId]) {
+            otherPlayer.destroy();
+          } else {
+            otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
+          }
+        }
+      });
+      if (self.otherNicknames[playerInfo.playerId]) self.otherNicknames[playerInfo.playerId].setPosition(playerInfo.nodes[0].x, playerInfo.nodes[0].y + PLAYER_SIZE * 3);
+    });
+  
+    this.socket.on('scoreUpdate', (leaderboard) => {
+      var newText = '        Leaderboard\n';
+      var place = 0;
+      for (var i = 0; i < 10; i++) {
+        if (leaderboard[i]) {
+          if (!leaderboard[i - 1] || leaderboard[i].score < leaderboard[i - 1].score) place++;
+          newText += '#' + place + ' ' + leaderboard[i].nickname.padEnd(MAX_NICKNAME_SIZE, ' ') + ' ' + leaderboard[i].score + '\n';
+        } else {
+          place++;
+          newText += '#' + place + '\n';
+        }
+      }
+      self.leaderboardText.setText(newText);
+    });
+  
+    this.socket.on('playerGrowed', (playerInfo) => {
+      growOtherPlayer(self, playerInfo);
+    });
+    
+    this.socket.on('nomCollection', (nomPos) => {
+      for (var i = 0; i < self.noms.getChildren().length; i++) {
+        if (nomPos.x === self.noms.getChildren()[i].x && nomPos.y === self.noms.getChildren()[i].y) {
+          self.noms.getChildren()[i].destroy();
+          i--;
+        }
+      }
+    });
+    
+    this.socket.on('nomLocations', (noms) => {
+      for (var i = 0; i < noms.length; i++) {
+        var nom = self.add.circle(noms[i].x, noms[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
+        self.physics.add.existing(nom);
+        self.noms.add(nom);
+      }
+      this.physics.add.collider(this.nodes[0], this.noms, (node, nom) => {
+        growPlayer(self);
+        var nomPos = { x: nom.x, y: nom.y };
+        this.socket.emit('nomCollected', nomPos);
+        this.socket.emit('playerGrow', { x: this.nodes[this.nodes.length - 1].x, y: this.nodes[this.nodes.length - 1].y });
+        nom.destroy();
+      });
+    });
+  
+    this.socket.on('nomsReleased', (nomsReleased) => {
+      for (var i = 0; i < nomsReleased.length; i++) {
+        var nom = self.add.circle(nomsReleased[i].x, nomsReleased[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
+        self.physics.add.existing(nom);
+        self.noms.add(nom);
+      }
+    });
+    
+    this.input.on('pointerdown', function (pointer) {
+      this.boosting = true;
+    }, this);
+    
+    this.input.on('pointerup', function (pointer) {
+      this.boosting = false;
+    }, this);
+  });
 }
 
 function update() {
+  if (this.boosting) {
+    this.speed = BOOST_SPEED;
+    this.boostMeter--;
+    if (this.boostMeter <= 0) {
+      if (this.nodes.length > 6) {
+        this.nodes[this.nodes.length - 1].setVisible(false);
+        this.socket.emit('playerBoost', [{ x: this.nodes[this.nodes.length - 1].x, y: this.nodes[this.nodes.length - 1].y }]);
+        this.nodes.pop();
+      }
+      this.boostMeter = BOOST_TIME;
+    }
+  } else {
+    this.speed = NORMAL_SPEED;
+  }
+
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
 
@@ -162,10 +217,10 @@ function update() {
         var xDir = Math.cos(this.nodes[i].rotation);
         var yDir = Math.sin(this.nodes[i].rotation);
 
-        this.nodes[i].x += xDir * SPEED;
-        this.nodes[i].y += yDir * SPEED;
+        this.nodes[i].x += xDir * this.speed;
+        this.nodes[i].y += yDir * this.speed;
 
-        for (var j = 0; j < SPEED; j++) {
+        for (var j = 0; j < this.speed; j++) {
           var part = this.path.pop();
           part.x = this.nodes[i].x + xDir;
           part.y = this.nodes[i].y + yDir;
@@ -183,11 +238,16 @@ function update() {
       gameOver(this);
     });
 
-    if (this.nodes[0].x - PLAYER_SIZE < -WORLD_SIZE/2 || this.nodes[0].x + PLAYER_SIZE > WORLD_SIZE/2 || this.nodes[0].y - PLAYER_SIZE < -WORLD_SIZE/2 || this.nodes[0].y + PLAYER_SIZE > WORLD_SIZE/2) {
-      gameOver(this);
-    }
+    this.nodes[0].body.setCollideWorldBounds(true);
+    this.nodes[0].body.onWorldBounds = true;
+    this.physics.world.on('worldbounds', (body) => {
+      if (!this.dead) {
+        this.dead = true;
+        gameOver(this);
+      }
+    }, this);
 
-    this.playerScoreText.setText('Length: ' + this.nodes.length);
+    this.playerScoreText.setText('Your Length: ' + this.nodes.length);
   }
 
 }
@@ -206,7 +266,6 @@ function addPlayer(self, playerInfo) {
   for (var i = 0; i <= playerInfo.nodes.length * SPACING; i++) {
     self.path[i] = { x: playerInfo.nodes[0].x - i, y: playerInfo.nodes[0].y };
   }
-
 }
 
 function addOtherPlayers(self, playerInfo) {
@@ -227,7 +286,9 @@ function gameOver(self) {
   }
   self.nicknameText.setVisible(false);
   self.nodes[0].body.checkCollision.none = true;
-  self.socket.emit('playerDed')
+  self.nodes[0].body.setCollideWorldBounds(false);
+  self.nodes[0].body.onWorldBounds = false;
+  self.socket.emit('playerDead')
 }
 
 function growPlayer(self) {
