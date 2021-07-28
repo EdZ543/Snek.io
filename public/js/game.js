@@ -1,11 +1,9 @@
 var config = {
   type: Phaser.AUTO,
   scale: {
-    mode: Phaser.Scale.FIT,
     parent: 'phaser-example',
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: window.innerWidth,
-    height: window.innerHeight,
   },
   physics: {
     default: 'arcade',
@@ -13,6 +11,9 @@ var config = {
       debug: false,
       gravity: { y: 0 }
     }
+  },
+  dom: {
+    createContainer: true
   },
   scene: {
     preload: preload,
@@ -33,19 +34,40 @@ var NOM_SIZE = 10;
 var WORLD_SIZE = 5000;
 
 function preload() {
-  this.load.image('background', 'assets/background.jpg')
+  this.load.image('background', 'assets/background.jpg');
+  this.load.html('nameform', 'assets/nameform.html');
 }
 
 function create() {
   background = this.add.tileSprite(0, 0, WORLD_SIZE, WORLD_SIZE, 'background').setOrigin(0.5, 0.5);
-
+  this.cameras.main.centerOn(0, 0);
+  
   var self = this;
   this.socket = io();
   this.otherPlayers = this.physics.add.group();
   this.noms = this.physics.add.group();
   this.nodes = [];
   this.path = [];
-
+  this.playerScoreText = this.add.text(16, 16, 'Length: ' + this.nodes.length, { fontSize: '32px', fill: '#FFFFFF' }).setScrollFactor(0).setVisible(false);
+  this.text_input = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromCache('nameform').setScrollFactor(0);
+  this.otherNicknames = {};
+  
+  this.text_input.addListener('click');
+  this.text_input.on('click', (event) => {
+    if (event.target.name === 'playButton') {
+      var inputText = this.text_input.getChildByName('nameField');
+      
+      if (inputText.value == '') {
+        
+      } else {
+        this.text_input.removeListener('click');
+        this.text_input.setVisible(false);
+        this.playerScoreText.setVisible(true);
+        this.socket.emit('login', inputText.value);
+      }
+    }
+  });
+  
   this.socket.on('currentPlayers', (players) => {
     Object.keys(players).forEach((id) => {
       if (players[id].playerId === self.socket.id) {
@@ -67,6 +89,7 @@ function create() {
         i--;
       }
     }
+    self.otherNicknames[playerId].setVisible(false);
   });
 
   this.socket.on('playerMoved', function (playerInfo) {
@@ -75,10 +98,11 @@ function create() {
         otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
       }
     });
-    console.log(self.otherPlayers.getChildren().length);
+    if (self.otherNicknames[playerInfo.playerId]) self.otherNicknames[playerInfo.playerId].setPosition(playerInfo.nodes[0].x, playerInfo.nodes[0].y + PLAYER_SIZE * 3);
   });
 
   this.socket.on('scoreUpdate', (playerInfo) => {
+
   });
 
   this.socket.on('playerGrowed', (playerInfo) => {
@@ -120,6 +144,8 @@ function create() {
 
 function update() {
   if (this.nodes.length > 0) {
+    this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
+
     for (var i = 0; i < this.nodes.length; i++) {
       if (i == 0) {
         this.input.activePointer.updateWorldPoint(this.cameras.main);
@@ -160,6 +186,8 @@ function update() {
     if (this.nodes[0].x - PLAYER_SIZE < -WORLD_SIZE/2 || this.nodes[0].x + PLAYER_SIZE > WORLD_SIZE/2 || this.nodes[0].y - PLAYER_SIZE < -WORLD_SIZE/2 || this.nodes[0].y + PLAYER_SIZE > WORLD_SIZE/2) {
       gameOver(this);
     }
+
+    this.playerScoreText.setText('Length: ' + this.nodes.length);
   }
 
 }
@@ -173,10 +201,12 @@ function addPlayer(self, playerInfo) {
   };
 
   self.cameras.main.startFollow(self.nodes[0]);
+  self.nicknameText = self.add.text(0, 0, playerInfo.nickname, { fontSize: '20px', fill: '#FFFFFF' }).setOrigin(0.5);
 
   for (var i = 0; i <= playerInfo.nodes.length * SPACING; i++) {
     self.path[i] = { x: playerInfo.nodes[0].x - i, y: playerInfo.nodes[0].y };
   }
+
 }
 
 function addOtherPlayers(self, playerInfo) {
@@ -187,6 +217,7 @@ function addOtherPlayers(self, playerInfo) {
     otherPlayer.nodeId = i;
     self.otherPlayers.add(otherPlayer);
   }
+  self.otherNicknames[playerInfo.playerId] = self.add.text(0, 0, playerInfo.nickname, { fontSize: '20px', fill: '#FFFFFF' }).setOrigin(0.5);
 }
 
 function gameOver(self) {
@@ -194,6 +225,7 @@ function gameOver(self) {
   for (var i = 0; i <self.nodes.length; i++) {
     self.nodes[i].setVisible(false);
   }
+  self.nicknameText.setVisible(false);
   self.nodes[0].body.checkCollision.none = true;
   self.socket.emit('playerDed')
 }
