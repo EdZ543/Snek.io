@@ -35,7 +35,7 @@ var NOM_SIZE = 10;
 var WORLD_SIZE = 3500;
 var MAX_NICKNAME_SIZE = 20;
 var NORMAL_SPEED = 5;
-var BOOST_SPEED = 10;
+var BOOST_SPEED = 30;
 var BOOST_TIME = 50;
 
 function preload() {
@@ -69,7 +69,6 @@ function create() {
   this.boostMeter = BOOST_TIME;
   this.boosting = false;
   this.physics.world.setBounds(-WORLD_SIZE / 2, -WORLD_SIZE / 2, WORLD_SIZE, WORLD_SIZE);
-  this.increment = 0;
   
   this.textInput.addListener('click');
   this.textInput.on('click', (event) => {
@@ -225,45 +224,34 @@ function update(time, delta) {
 
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
+
+    this.input.activePointer.updateWorldPoint(this.cameras.main);
+    var angleToPointer = Phaser.Math.Angle.Between(this.nodes[0].x, this.nodes[0].y, this.input.activePointer.worldX, this.input.activePointer.worldY);
+    var angleDelta = Phaser.Math.Angle.Wrap(angleToPointer - this.nodes[0].rotation);
     
-    var f = (delta / (1000 / 60));
-    this.increment += f;
-    if (this.increment > 1) {
-      this.increment -= 1;
-      for (var i = 0; i < this.nodes.length; i++) {
-        if (i == 0) {
-          this.input.activePointer.updateWorldPoint(this.cameras.main);
-          var angleToPointer = Phaser.Math.Angle.Between(this.nodes[i].x, this.nodes[i].y, this.input.activePointer.worldX, this.input.activePointer.worldY);
-          var angleDelta = Phaser.Math.Angle.Wrap(angleToPointer - this.nodes[i].rotation);
-          
-          if (Phaser.Math.Within(angleDelta, 0, TOLERANCE)) {
-            this.nodes[i].rotation = angleToPointer;
-            this.nodes[i].body.setAngularVelocity(0);
-          } else {
-            this.nodes[i].body.setAngularVelocity(Math.sign(angleDelta) * ROTATION_SPEED_DEGREES);
-          }
-          
-          var xDir = Math.cos(this.nodes[i].rotation);
-          var yDir = Math.sin(this.nodes[i].rotation);
-          
-          // this.nodes[i].x += xDir * this.speed;
-          // this.nodes[i].y += yDir * this.speed;
-          this.physics.velocityFromRotation(this.nodes[i].rotation, this.speed * 50, this.nodes[i].body.velocity);
-          
-          for (var j = 0; j < this.speed; j++) {
-            var part = this.path.pop();
-            part.x = this.nodes[i].x + xDir;
-            part.y = this.nodes[i].y + yDir;
-            this.path.unshift(part);
-          }
-        } else {
-          this.nodes[i].x = this.path[i * SPACING].x;
-          this.nodes[i].y = this.path[i * SPACING].y;
-        }
-      }
-      
-      this.socket.emit('playerMovement', { nodes: this.nodes });
+    if (Phaser.Math.Within(angleDelta, 0, TOLERANCE)) {
+      this.nodes[0].rotation = angleToPointer;
+      this.nodes[0].body.setAngularVelocity(0);
+    } else {
+      this.nodes[0].body.setAngularVelocity(Math.sign(angleDelta) * ROTATION_SPEED_DEGREES);
     }
+    
+    var xDir = Math.cos(this.nodes[0].rotation);
+    var yDir = Math.sin(this.nodes[0].rotation);
+    
+    for (var i = 0; i < this.speed; i++) {
+      var part = this.path.pop();
+      part.x = this.path[0].x + xDir;
+      part.y = this.path[0].y + yDir;
+      this.path.unshift(part);
+    }
+
+    for (var i = 0; i < this.nodes.length; i++) {
+      this.nodes[i].x = this.path[i * SPACING].x;
+      this.nodes[i].y = this.path[i * SPACING].y;
+    }
+
+    this.socket.emit('playerMovement', { nodes: this.nodes });
   }
 }
 
