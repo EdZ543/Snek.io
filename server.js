@@ -8,7 +8,7 @@ var noms = [];
 var leaderboard = [];
 
 var INIT_NODES = 6;
-var NUM_NOMS = 100;
+var NUM_NOMS = 1;
 var WORLD_SIZE = 3500;
 var BUFFER = 500;
 
