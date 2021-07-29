@@ -49,6 +49,7 @@ function create() {
   
   var self = this;
   this.socket = io();
+  this.physics.world.setFPS(60);
   this.otherPlayers = this.physics.add.group();
   this.noms = this.physics.add.group();
   this.nodes = [];
