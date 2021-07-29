@@ -35,7 +35,7 @@ var NOM_SIZE = 10;
 var WORLD_SIZE = 3500;
 var MAX_NICKNAME_SIZE = 20;
 var NORMAL_SPEED = 5;
-var BOOST_SPEED = 30;
+var BOOST_SPEED = 15;
 var BOOST_TIME = 50;
 
 function preload() {
@@ -238,8 +238,10 @@ function update(time, delta) {
     
     var xDir = Math.cos(this.nodes[0].rotation);
     var yDir = Math.sin(this.nodes[0].rotation);
+
+    var deltaAdjust = (delta / (1000 / 60));
     
-    for (var i = 0; i < this.speed; i++) {
+    for (var i = 0; i < this.speed * deltaAdjust; i++) {
       var part = this.path.pop();
       part.x = this.path[0].x + xDir;
       part.y = this.path[0].y + yDir;
