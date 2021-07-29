@@ -8,7 +8,7 @@ var noms = [];
 var leaderboard = [];
 
 var INIT_NODES = 6;
-var NUM_NOMS = 1;
+var NUM_NOMS = 100;
 var WORLD_SIZE = 3500;
 var BUFFER = 500;
 
@@ -148,6 +148,15 @@ io.on('connection', function (socket) {
     socket.on('playerBoost', (nomsReleased) => {
       players[socket.id].nodes.pop();
       noms.push(nomsReleased[0]);
+
+      for (var i = 0; i < leaderboard.length; i++) {
+        if (leaderboard[i] && leaderboard[i].playerId == socket.id) {
+          leaderboard[i].score--;
+        }
+      }
+      leaderboard.sort(leaderboardSort);
+      io.emit('scoreUpdate', leaderboard);
+
       io.emit('nomsReleased', nomsReleased);
     });
   })
