@@ -43,9 +43,10 @@ io.on('connection', function (socket) {
   socket.on('login', (nickname) => {
     socket.emit('loggedIn');
 
-    if (Object.keys(noms).length == 0) {
+    if (Object.keys(players).length == 0) {
       initNoms();
     }
+
     // console.log(noms);
     // for (var i = 0; i < noms.length; i++) {
     //   console.log(noms[i]);
