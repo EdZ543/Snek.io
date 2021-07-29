@@ -226,7 +226,7 @@ function update(time, delta) {
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
     
-    var f = Math.floor(this.speed * (delta / (1000 / 60)));
+    var f = (delta / (1000 / 60));
     this.increment += f;
     if (this.increment > 1) {
       this.increment -= 1;
