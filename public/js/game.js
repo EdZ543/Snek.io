@@ -245,7 +245,7 @@ function update(time, delta) {
         this.nodes[i].x += xDir * this.speed * (delta / (1000 / 60));
         this.nodes[i].y += yDir * this.speed * (delta / (1000 / 60));
         
-        for (var j = 0; j < this.speed; j++) {
+        for (var j = 0; j < this.speed * (delta / (1000 / 60)); j++) {
           var part = this.path.pop();
           part.x = this.nodes[i].x + xDir;
           part.y = this.nodes[i].y + yDir;
