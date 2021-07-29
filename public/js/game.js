@@ -58,9 +58,13 @@ function create() {
   this.leaderboardText = this.add.text(this.scale.width, 0, '', { fontSize: '20px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(1, 0);
   this.leaderboardText.depth = 1;
   this.textInput = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromCache('nameform').setScrollFactor(0);
+  this.textInput.depth = 1;
   this.warningText = this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, '', { fontSize: '20px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5);
+  this.warningText.depth = 1;
   this.titleText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 100, 'Snek.io', { fontSize: '100px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5);
+  this.titleText.depth = 1;
   this.gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, 'OOF Game Over', { fontSize: '100px', fill: '#FFFFFF' }).setScrollFactor(0).setOrigin(0.5).setVisible(false);
+  this.gameOverText.depth = 1;
   this.otherNicknames = {};
   this.boostMeter = BOOST_TIME;
   this.boosting = false;
@@ -124,15 +128,15 @@ function create() {
     });
   
     this.socket.on('scoreUpdate', (leaderboard) => {
-      var newText = '        Leaderboard\n';
+      var newText = 'Leaderboard\n\n';
       var place = 0;
       for (var i = 0; i < 10; i++) {
         if (leaderboard[i]) {
           if (!leaderboard[i - 1] || leaderboard[i].score < leaderboard[i - 1].score) place++;
-          newText += '#' + place + ' ' + leaderboard[i].nickname.padEnd(MAX_NICKNAME_SIZE, ' ') + ' ' + leaderboard[i].score + '\n';
+          newText += '#' + place + ' ' + leaderboard[i].nickname.padEnd(MAX_NICKNAME_SIZE, ' ') + ' ' + String(leaderboard[i].score).padEnd(3, ' ') + '\n';
         } else {
           place++;
-          newText += '#' + place + '\n';
+          newText += '#' + place + ' '.padEnd(MAX_NICKNAME_SIZE, ' ') + ' ' + ' '.padEnd(3, ' ') + '\n';
         }
       }
       self.leaderboardText.setText(newText);
