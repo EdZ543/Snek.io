@@ -225,41 +225,45 @@ function update(time, delta) {
 
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
-      
-    for (var i = 0; i < this.nodes.length; i++) {
-      if (i == 0) {
-        this.input.activePointer.updateWorldPoint(this.cameras.main);
-        var angleToPointer = Phaser.Math.Angle.Between(this.nodes[i].x, this.nodes[i].y, this.input.activePointer.worldX, this.input.activePointer.worldY);
-        var angleDelta = Phaser.Math.Angle.Wrap(angleToPointer - this.nodes[i].rotation);
-        
-        if (Phaser.Math.Within(angleDelta, 0, TOLERANCE)) {
-          this.nodes[i].rotation = angleToPointer;
-          this.nodes[i].body.setAngularVelocity(0);
+    
+    var f = Math.floor(this.speed * (delta / (1000 / 60)));
+    this.increment += f;
+    if (this.increment > 1) {
+      this.increment -= 1;
+      for (var i = 0; i < this.nodes.length; i++) {
+        if (i == 0) {
+          this.input.activePointer.updateWorldPoint(this.cameras.main);
+          var angleToPointer = Phaser.Math.Angle.Between(this.nodes[i].x, this.nodes[i].y, this.input.activePointer.worldX, this.input.activePointer.worldY);
+          var angleDelta = Phaser.Math.Angle.Wrap(angleToPointer - this.nodes[i].rotation);
+          
+          if (Phaser.Math.Within(angleDelta, 0, TOLERANCE)) {
+            this.nodes[i].rotation = angleToPointer;
+            this.nodes[i].body.setAngularVelocity(0);
+          } else {
+            this.nodes[i].body.setAngularVelocity(Math.sign(angleDelta) * ROTATION_SPEED_DEGREES);
+          }
+          
+          var xDir = Math.cos(this.nodes[i].rotation);
+          var yDir = Math.sin(this.nodes[i].rotation);
+          
+          this.nodes[i].x += xDir * this.speed;
+          this.nodes[i].y += yDir * this.speed;
+          
+          for (var j = 0; j < this.speed; j++) {
+            var part = this.path.pop();
+            part.x = this.nodes[i].x + xDir;
+            part.y = this.nodes[i].y + yDir;
+            this.path.unshift(part);
+          }
         } else {
-          this.nodes[i].body.setAngularVelocity(Math.sign(angleDelta) * ROTATION_SPEED_DEGREES);
+          this.nodes[i].x = this.path[i * SPACING].x;
+          this.nodes[i].y = this.path[i * SPACING].y;
         }
-        
-        var xDir = Math.cos(this.nodes[i].rotation);
-        var yDir = Math.sin(this.nodes[i].rotation);
-        
-        this.nodes[i].x += xDir * this.speed * (delta / (1000 / 60));
-        this.nodes[i].y += yDir * this.speed * (delta / (1000 / 60));
-        
-        for (var j = 0; j < this.speed * (delta / (1000 / 60)); j++) {
-          var part = this.path.pop();
-          part.x = this.nodes[i].x + xDir;
-          part.y = this.nodes[i].y + yDir;
-          this.path.unshift(part);
-        }
-      } else {
-        this.nodes[i].x = this.path[i * SPACING].x;
-        this.nodes[i].y = this.path[i * SPACING].y;
       }
+      
+      this.socket.emit('playerMovement', { nodes: this.nodes });
     }
-    
-    this.socket.emit('playerMovement', { nodes: this.nodes });
   }
-    
 }
 
 function addPlayer(self, playerInfo) {
