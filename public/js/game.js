@@ -10,7 +10,7 @@ var config = {
   physics: {
     default: 'arcade',
     arcade: {
-      debug: false,
+      debug: true,
       gravity: { y: 0 }
     }
   },
@@ -49,7 +49,6 @@ function create() {
   
   var self = this;
   this.socket = io();
-  this.physics.world.setFPS(60);
   this.otherPlayers = this.physics.add.group();
   this.noms = this.physics.add.group();
   this.nodes = [];
@@ -70,6 +69,7 @@ function create() {
   this.boostMeter = BOOST_TIME;
   this.boosting = false;
   this.physics.world.setBounds(-WORLD_SIZE / 2, -WORLD_SIZE / 2, WORLD_SIZE, WORLD_SIZE);
+  this.increment = 0;
   
   this.textInput.addListener('click');
   this.textInput.on('click', (event) => {
@@ -206,8 +206,8 @@ function create() {
   });
 }
 
-function update() {
-  if (this.boosting) {
+function update(time, delta) {
+  if (this.boosting && !this.dead) {
     this.speed = BOOST_SPEED;
     this.boostMeter--;
     if (this.boostMeter <= 0) {
@@ -225,13 +225,13 @@ function update() {
 
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
-
+      
     for (var i = 0; i < this.nodes.length; i++) {
       if (i == 0) {
         this.input.activePointer.updateWorldPoint(this.cameras.main);
         var angleToPointer = Phaser.Math.Angle.Between(this.nodes[i].x, this.nodes[i].y, this.input.activePointer.worldX, this.input.activePointer.worldY);
         var angleDelta = Phaser.Math.Angle.Wrap(angleToPointer - this.nodes[i].rotation);
-
+        
         if (Phaser.Math.Within(angleDelta, 0, TOLERANCE)) {
           this.nodes[i].rotation = angleToPointer;
           this.nodes[i].body.setAngularVelocity(0);
@@ -242,8 +242,8 @@ function update() {
         var xDir = Math.cos(this.nodes[i].rotation);
         var yDir = Math.sin(this.nodes[i].rotation);
         
-        this.nodes[i].x += xDir * this.speed;
-        this.nodes[i].y += yDir * this.speed;
+        this.nodes[i].x += xDir * this.speed * (delta / (1000 / 60));
+        this.nodes[i].y += yDir * this.speed * (delta / (1000 / 60));
         
         for (var j = 0; j < this.speed; j++) {
           var part = this.path.pop();
@@ -259,7 +259,7 @@ function update() {
     
     this.socket.emit('playerMovement', { nodes: this.nodes });
   }
-
+    
 }
 
 function addPlayer(self, playerInfo) {
@@ -315,6 +315,7 @@ function addOtherPlayers(self, playerInfo) {
 }
 
 function gameOver(self) {
+  self.dead = true;
   self.cameras.main.stopFollow();
   for (var i = 0; i <self.nodes.length; i++) {
     self.nodes[i].setVisible(false);
