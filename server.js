@@ -41,6 +41,7 @@ io.on('connection', function (socket) {
   console.log('a user connected');
 
   socket.on('login', (nickname) => {
+    console.log(nickname + ' logged in');
     socket.emit('loggedIn');
 
     if (Object.keys(players).length == 0) {
