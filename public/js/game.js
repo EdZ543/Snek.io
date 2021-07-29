@@ -246,8 +246,9 @@ function update(time, delta) {
           var xDir = Math.cos(this.nodes[i].rotation);
           var yDir = Math.sin(this.nodes[i].rotation);
           
-          this.nodes[i].x += xDir * this.speed;
-          this.nodes[i].y += yDir * this.speed;
+          // this.nodes[i].x += xDir * this.speed;
+          // this.nodes[i].y += yDir * this.speed;
+          this.physics.velocityFromRotation(this.nodes[i].rotation, this.speed * 50, this.nodes[i].body.velocity);
           
           for (var j = 0; j < this.speed; j++) {
             var part = this.path.pop();
