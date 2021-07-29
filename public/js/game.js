@@ -116,6 +116,7 @@ function create() {
             otherPlayer.destroy();
           } else {
             otherPlayer.setPosition(playerInfo.nodes[otherPlayer.nodeId].x, playerInfo.nodes[otherPlayer.nodeId].y);
+            otherPlayer.setRotation(playerInfo.nodes[otherPlayer.nodeId].rotation);
           }
         }
       });
@@ -154,6 +155,7 @@ function create() {
       for (var i = 0; i < noms.length; i++) {
         var nom = self.add.circle(noms[i].x, noms[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
         self.physics.add.existing(nom);
+        nom.body.setCircle(NOM_SIZE);
         self.noms.add(nom);
       }
       this.physics.add.collider(this.nodes[0], this.noms, (node, nom) => {
@@ -169,6 +171,7 @@ function create() {
       for (var i = 0; i < nomsReleased.length; i++) {
         var nom = self.add.circle(nomsReleased[i].x, nomsReleased[i].y, NOM_SIZE, Phaser.Display.Color.GetColor(255, 255, 255));
         self.physics.add.existing(nom);
+        nom.body.setCircle(NOM_SIZE);
         self.noms.add(nom);
       }
     });
@@ -256,9 +259,18 @@ function update() {
 
 function addPlayer(self, playerInfo) {
   for (var i = 0; i < playerInfo.nodes.length; i++) {
-    self.nodes[i] = self.add.circle(playerInfo.nodes[i].x, playerInfo.nodes[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
     if (i == 0) {
+      self.nodes[i] = self.add.container(playerInfo.nodes[i].x, playerInfo.nodes[i].y);
+      self.nodes[i].add(self.add.circle(0, 0, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color));
+      self.nodes[i].add(self.add.circle(PLAYER_SIZE, -PLAYER_SIZE / 2, PLAYER_SIZE / 2, Phaser.Display.Color.HexStringToColor('#FFFFFF').color).setOrigin(1, 0.5));
+      self.nodes[i].add(self.add.circle(PLAYER_SIZE, PLAYER_SIZE / 2, PLAYER_SIZE / 2, Phaser.Display.Color.HexStringToColor('#FFFFFF').color).setOrigin(1, 0.5));
+      self.nodes[i].add(self.add.circle(PLAYER_SIZE, -PLAYER_SIZE / 2, PLAYER_SIZE / 3, Phaser.Display.Color.HexStringToColor('#000000').color).setOrigin(1, 0.5));
+      self.nodes[i].add(self.add.circle(PLAYER_SIZE, PLAYER_SIZE / 2, PLAYER_SIZE / 3, Phaser.Display.Color.HexStringToColor('#000000').color).setOrigin(1, 0.5));
       self.physics.add.existing(self.nodes[i]);
+      self.nodes[i].body.setCircle(PLAYER_SIZE, -PLAYER_SIZE, -PLAYER_SIZE);
+      self.nodes[i].setInteractive(new Phaser.Geom.Circle(0, 0, PLAYER_SIZE), Phaser.Geom.Circle.Contains);
+    } else {
+      self.nodes[i] = self.add.circle(playerInfo.nodes[i].x, playerInfo.nodes[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
     }
   };
 
@@ -272,11 +284,27 @@ function addPlayer(self, playerInfo) {
 
 function addOtherPlayers(self, playerInfo) {
   for (var i = 0; i < playerInfo.nodes.length; i++) {
-    var otherPlayer = self.add.circle(playerInfo.nodes[i].x, playerInfo.nodes[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
-    self.physics.add.existing(otherPlayer);
-    otherPlayer.playerId = playerInfo.playerId;
-    otherPlayer.nodeId = i;
-    self.otherPlayers.add(otherPlayer);
+    if (i == 0) {
+      var otherPlayer = self.add.container(playerInfo.nodes[i].x, playerInfo.nodes[i].y);
+      otherPlayer.add(self.add.circle(0, 0, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color));
+      otherPlayer.add(self.add.circle(PLAYER_SIZE, -PLAYER_SIZE / 2, PLAYER_SIZE / 2, Phaser.Display.Color.HexStringToColor('#FFFFFF').color).setOrigin(1, 0.5));
+      otherPlayer.add(self.add.circle(PLAYER_SIZE, PLAYER_SIZE / 2, PLAYER_SIZE / 2, Phaser.Display.Color.HexStringToColor('#FFFFFF').color).setOrigin(1, 0.5));
+      otherPlayer.add(self.add.circle(PLAYER_SIZE, -PLAYER_SIZE / 2, PLAYER_SIZE / 3, Phaser.Display.Color.HexStringToColor('#000000').color).setOrigin(1, 0.5));
+      otherPlayer.add(self.add.circle(PLAYER_SIZE, PLAYER_SIZE / 2, PLAYER_SIZE / 3, Phaser.Display.Color.HexStringToColor('#000000').color).setOrigin(1, 0.5));
+      self.physics.add.existing(otherPlayer);
+      otherPlayer.body.setCircle(PLAYER_SIZE, -PLAYER_SIZE, -PLAYER_SIZE);
+      otherPlayer.setInteractive(new Phaser.Geom.Circle(0, 0, PLAYER_SIZE), Phaser.Geom.Circle.Contains);
+      otherPlayer.playerId = playerInfo.playerId;
+      otherPlayer.nodeId = i;
+      self.otherPlayers.add(otherPlayer);
+    } else {
+      var otherPlayer = self.add.circle(playerInfo.nodes[i].x, playerInfo.nodes[i].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
+      self.physics.add.existing(otherPlayer);
+      otherPlayer.body.setCircle(PLAYER_SIZE);
+      otherPlayer.playerId = playerInfo.playerId;
+      otherPlayer.nodeId = i;
+      self.otherPlayers.add(otherPlayer);
+    }
   }
   self.otherNicknames[playerInfo.playerId] = self.add.text(0, 0, playerInfo.nickname, { fontSize: '20px', fill: '#FFFFFF' }).setOrigin(0.5);
 }
@@ -291,6 +319,7 @@ function gameOver(self) {
   self.nodes[0].body.checkCollision.none = true;
   self.nodes[0].body.setCollideWorldBounds(false);
   self.nodes[0].body.onWorldBounds = false;
+  self.nodes[0].body.destroy();
   self.socket.emit('playerDead')
 }
 
@@ -304,6 +333,7 @@ function growPlayer(self) {
 function growOtherPlayer(self, playerInfo) {
   var otherNode = self.add.circle(playerInfo.nodes[playerInfo.nodes.length - 1].x, playerInfo.nodes[playerInfo.nodes.length - 1].y, PLAYER_SIZE, Phaser.Display.Color.HexStringToColor(playerInfo.color).color);
   self.physics.add.existing(otherNode);
+  otherNode.body.setCircle(PLAYER_SIZE);
   otherNode.playerId = playerInfo.playerId;
   otherNode.nodeId = playerInfo.nodes.length - 1;
   self.otherPlayers.add(otherNode);
