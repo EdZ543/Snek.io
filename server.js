@@ -84,7 +84,7 @@ io.on('connection', function (socket) {
         players[socket.id].nodes[i] = movementData.nodes[i];
       }
       socket.broadcast.emit('playerMoved', players[socket.id]);
-      console.log(noms.length);
+      // console.log(noms.length);
     });
 
     socket.on('disconnect', () => {
