@@ -97,6 +97,21 @@ function create() {
           if (players[id].alive) addOtherPlayers(self, players[id]);
         }
       });
+
+      this.physics.add.collider(this.nodes[0], this.otherPlayers, () => {
+        gameOver(this);
+      });
+
+      this.nodes[0].body.setCollideWorldBounds(true);
+      this.nodes[0].body.onWorldBounds = true;
+      this.physics.world.on('worldbounds', (body) => {
+        if (!this.dead) {
+          this.dead = true;
+          gameOver(this);
+        }
+      }, this);
+
+      this.playerScoreText.setText('Your Length: ' + self.nodes.length);
     });
   
     this.socket.on('newPlayer', (playerInfo) => {
@@ -199,6 +214,7 @@ function update() {
         this.nodes[this.nodes.length - 1].setVisible(false);
         this.socket.emit('playerBoost', [{ x: this.nodes[this.nodes.length - 1].x, y: this.nodes[this.nodes.length - 1].y }]);
         this.nodes.pop();
+        this.playerScoreText.setText('Your Length: ' + this.nodes.length);
       }
       this.boostMeter = BOOST_TIME;
     }
@@ -206,7 +222,6 @@ function update() {
     this.speed = NORMAL_SPEED;
   }
 
-  // if (this.noms.getChildren()[0])console.log(this.noms.getChildren()[0].x);
   if (this.nodes.length > 0) {
     this.nicknameText.setPosition(this.nodes[0].x, this.nodes[0].y + PLAYER_SIZE * 3);
 
@@ -222,13 +237,13 @@ function update() {
         } else {
           this.nodes[i].body.setAngularVelocity(Math.sign(angleDelta) * ROTATION_SPEED_DEGREES);
         }
-
+        
         var xDir = Math.cos(this.nodes[i].rotation);
         var yDir = Math.sin(this.nodes[i].rotation);
-
+        
         this.nodes[i].x += xDir * this.speed;
         this.nodes[i].y += yDir * this.speed;
-
+        
         for (var j = 0; j < this.speed; j++) {
           var part = this.path.pop();
           part.x = this.nodes[i].x + xDir;
@@ -240,23 +255,8 @@ function update() {
         this.nodes[i].y = this.path[i * SPACING].y;
       }
     }
-
+    
     this.socket.emit('playerMovement', { nodes: this.nodes });
-
-    this.physics.add.collider(this.nodes[0], this.otherPlayers, () => {
-      gameOver(this);
-    });
-
-    this.nodes[0].body.setCollideWorldBounds(true);
-    this.nodes[0].body.onWorldBounds = true;
-    this.physics.world.on('worldbounds', (body) => {
-      if (!this.dead) {
-        this.dead = true;
-        gameOver(this);
-      }
-    }, this);
-
-    this.playerScoreText.setText('Your Length: ' + this.nodes.length);
   }
 
 }
@@ -332,6 +332,7 @@ function growPlayer(self) {
   for (var i = 0; i < SPACING; i++) {
     self.path.push({ x: self.nodes[self.nodes.length - 1].x - i, y: self.nodes[self.nodes.length - 1].y });
   }
+  self.playerScoreText.setText('Your Length: ' + self.nodes.length);
 }
 
 function growOtherPlayer(self, playerInfo) {

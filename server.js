@@ -47,11 +47,6 @@ io.on('connection', function (socket) {
       initNoms();
     }
 
-    // console.log(noms);
-    // for (var i = 0; i < noms.length; i++) {
-    //   console.log(noms[i]);
-    // }
-
     players[socket.id] = {
       nodes: [],
       playerId: socket.id,
@@ -85,7 +80,6 @@ io.on('connection', function (socket) {
         players[socket.id].nodes[i] = movementData.nodes[i];
       }
       socket.broadcast.emit('playerMoved', players[socket.id]);
-      // console.log(noms.length);
     });
 
     socket.on('disconnect', () => {
@@ -133,13 +127,9 @@ io.on('connection', function (socket) {
 
     socket.on('nomCollected', (nomPos) => {
       for (var i = 0; i < noms.length; i++) {
-        // console.log(noms[i]);
         if (noms[i] && noms[i].x == nomPos.x && noms[i].y == nomPos.y) {
-          // console.log('poggers');
           noms.splice(i, 1);
           i--;
-        } else {
-          // console.log(noms[i], nomPos);
         }
       }
       socket.broadcast.emit('nomCollection', nomPos);
